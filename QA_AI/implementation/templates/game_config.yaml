@@ -1,0 +1,94 @@
+# ============================================================
+# Game Configuration Template
+# ============================================================
+# Phase 0 에서 작성
+# 복사: cp templates/game_config.yaml games/{game_name}/config.yaml
+# ============================================================
+
+# --- 기본 정보 ---
+game:
+  name: ""                       # 게임 이름 (예: "CarMatch")
+  package_name: ""               # 패키지명 (예: "com.example.carmatch")
+  platform: android              # android / ios / both / web
+  genre: idle                    # rpg / idle / merge / puzzle / casual / slg / tycoon / simulation
+  language: ko                   # 기본 언어
+  supported_languages:
+    - ko
+    - en
+
+# --- 데이터베이스 연결 ---
+database:
+  type: none                     # mysql / postgresql / mongodb / none
+  host: ""                       # DB 호스트 (예: "db.example.com")
+  port: 3306                     # DB 포트
+  name: ""                       # DB 이름
+  read_only: true                # 반드시 true (안전을 위해 읽기 전용)
+  # 비밀번호는 .env 파일에서 관리:
+  # {GAME}_DB_USER=xxx
+  # {GAME}_DB_PASS=xxx
+
+# --- CS 채널 ---
+channels:
+  primary: discord               # discord / kakaotalk / email / in_app
+  secondary: []                  # 추가 채널
+
+  discord:
+    guild_id: ""                 # Discord 서버 ID
+    cs_channel_id: ""            # CS 문의 채널 ID (#cs-support)
+    alert_channel_id: ""         # 운영 알림 채널 ID (#ops-alert)
+    bug_report_channel_id: ""    # 버그 리포트 채널 ID (#bug-report)
+
+  # kakaotalk:
+  #   channel_id: ""
+  #   profile_key: ""
+
+# --- 게임 재화 ---
+currencies:
+  - name: "골드"                  # 게임 내 표시명
+    code: "gold"                 # 시스템 코드
+    type: soft                   # soft(무료) / hard(유료) / premium
+  - name: "다이아몬드"
+    code: "diamond"
+    type: hard
+
+# --- 응답 스타일 ---
+response_style:
+  tone: formal                   # formal / friendly / casual
+  emoji: false                   # 이모지 사용 여부
+  signature: "- 고객센터 AI"      # 응답 끝 서명
+  max_length: 500                # 최대 응답 글자 수
+  forbidden_phrases:             # AI가 절대 사용하면 안 되는 표현
+    - "확실합니다"
+    - "보장합니다"
+    - "100%"
+  closing_phrase: "추가 문의가 있으시면 언제든 말씀해주세요."
+
+# --- 버그 소스 (Phase 2) ---
+bug_sources:
+  - type: cs_tickets
+    enabled: true
+  - type: discord_channel
+    enabled: true
+    channel_id: ""               # #bug-report 채널 ID
+  - type: google_play
+    enabled: false
+  - type: app_store
+    enabled: false
+
+# --- 알림 (Phase 2) ---
+alerts:
+  channels:
+    - type: discord
+      channel_id: ""             # #ops-alert 채널 ID
+      mention_role: ""           # @ops-team 역할명
+  levels:
+    info:
+      notify: true
+      mention: false
+    warning:
+      notify: true
+      mention: true
+    critical:
+      notify: true
+      mention: true
+      repeat_interval: 30        # 분 단위 반복 알림

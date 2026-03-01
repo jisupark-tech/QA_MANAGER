@@ -1,0 +1,121 @@
+# ============================================================
+# Game Telemetry Schema Template
+# ============================================================
+# Phase 2 에서 작성
+# 복사: cp templates/telemetry_schema.yaml games/{game_name}/telemetry_schema.yaml
+# 게임이 어떤 데이터를 기록하는지 정의합니다
+# ============================================================
+
+# --- 데이터 접근 방식 ---
+access:
+  method: database                 # database / api / csv_dump / log_file / none
+
+  # method: database 일 때
+  database:
+    type: mysql                    # mysql / postgresql / mongodb
+    # connection info → .env 파일에서 관리
+    refresh_interval: 300          # 조회 주기 (초) — 기본 5분
+
+  # method: csv_dump 일 때
+  # csv_dump:
+  #   directory: "/data/exports/"
+  #   filename_pattern: "telemetry_{date}.csv"
+  #   schedule: daily              # daily / hourly
+
+  # method: api 일 때
+  # api:
+  #   base_url: "https://api.mygame.com/analytics"
+  #   auth_header: "X-API-Key"
+  #   # api key → .env
+
+  # method: none 일 때
+  # → CS 티켓 기반 분석만 사용 (Fallback 모드)
+
+# --- 유저 활동 로그 ---
+user_activity:
+  table: "user_activity_log"       # 테이블명 또는 API 엔드포인트
+  fields:
+    user_id: "uid"                 # 유저 ID 컬럼명
+    timestamp: "created_at"        # 타임스탬프 컬럼명
+    action_type: "action"          # 액션 유형 컬럼명
+    detail: "detail_json"          # 상세 데이터 (JSON 문자열)
+
+  # 이 게임에서 기록하는 action_type 값 목록
+  action_types:
+    - login                        # 로그인
+    - logout                       # 로그아웃
+    - stage_clear                  # 스테이지 클리어
+    - stage_fail                   # 스테이지 실패
+    - purchase                     # 인앱 결제
+    - item_acquire                 # 아이템 획득
+    - item_use                     # 아이템 사용
+    - currency_earn                # 재화 획득
+    - currency_spend               # 재화 소비
+    # - pvp_match                  # PvP 매칭 (해당 시)
+    # - guild_action               # 길드 활동 (해당 시)
+    # - chat_message               # 채팅 (해당 시)
+
+# --- 경제 데이터 ---
+economy:
+  currency_log_table: "currency_log"
+  fields:
+    user_id: "uid"
+    currency_type: "currency"      # gold / diamond / etc
+    amount: "amount"               # 양수=획득, 음수=소비
+    source: "source"               # stage_reward / shop / quest / admin / event
+    balance_after: "balance"       # 변동 후 잔액
+    timestamp: "created_at"
+
+# --- 진행도 데이터 ---
+progression:
+  table: "user_progression"
+  fields:
+    user_id: "uid"
+    level: "level"
+    stage: "current_stage"         # 현재 진행 스테이지
+    play_time_minutes: "total_playtime"  # 누적 플레이 시간 (분)
+    updated_at: "updated_at"
+
+# --- 세션 데이터 ---
+sessions:
+  table: "session_log"
+  fields:
+    user_id: "uid"
+    session_id: "session_id"
+    login_at: "login_at"
+    logout_at: "logout_at"
+    device: "device_model"         # 기기 모델명
+    os_version: "os_version"       # OS 버전
+    app_version: "app_version"     # 앱 버전
+
+# --- 결제 데이터 ---
+# (Phase 1 game_config.yaml의 payment_table과 동일하면 생략 가능)
+payments:
+  table: "payments"
+  fields:
+    payment_id: "id"
+    user_id: "uid"
+    amount: "amount"
+    currency: "currency"           # KRW / USD
+    product_id: "product_id"
+    status: "status"               # completed / refunded / failed
+    created_at: "created_at"
+
+# --- 이상 탐지 기준선 (선택) ---
+# 없으면 시스템이 7일 데이터로 자동 산출
+baselines:
+  auto_baseline:
+    enabled: true                  # 자동 기준선 산출
+    warmup_days: 7                 # 데이터 수집 기간
+    method: "percentile_95"        # 95 퍼센타일을 이상 기준으로
+
+  # 수동 기준선 (알고 있는 경우)
+  # manual:
+  #   gold_per_hour:
+  #     normal_min: 3000
+  #     normal_max: 8000
+  #     alert_threshold: 30000
+  #   stage_clear_per_day:
+  #     normal_min: 5
+  #     normal_max: 30
+  #     alert_threshold: 100

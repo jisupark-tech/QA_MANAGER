@@ -1,0 +1,207 @@
+# ============================================================
+# KPI Definitions Template
+# ============================================================
+# Phase 3~4 에서 작성
+# 복사: cp templates/kpi_definitions.yaml games/{game_name}/kpi_definitions.yaml
+# 각 KPI의 데이터소스와 목표값을 정의합니다
+# ============================================================
+
+# --- 리포트 스케줄 ---
+report_schedule:
+  daily: true                      # 매일 오전 10시 리포트
+  daily_time: "10:00"
+  weekly: true                     # 매주 월요일
+  weekly_day: monday
+  weekly_time: "10:00"
+  monthly: true                    # 매월 1일
+  monthly_time: "10:00"
+
+# --- KPI 지표 정의 ---
+metrics:
+  # =====================
+  # 유저 지표 (User)
+  # =====================
+  - id: dau
+    name: "DAU (일일 활성 유저)"
+    category: user
+    source:
+      type: database               # database / api / internal / manual
+      query: >
+        SELECT COUNT(DISTINCT uid)
+        FROM session_log
+        WHERE DATE(login_at) = CURDATE()
+    format: number                 # number / percentage / currency_krw / duration_seconds / minutes
+    comparison: day_over_day       # 전일 대비 표시
+    # target: 10000               # 목표값 (있으면 설정)
+    # alert_below: 5000           # 이 값 미만이면 알림
+
+  - id: nru
+    name: "NRU (신규 가입)"
+    category: user
+    source:
+      type: database
+      query: >
+        SELECT COUNT(*)
+        FROM users
+        WHERE DATE(created_at) = CURDATE()
+    format: number
+    comparison: day_over_day
+
+  - id: retention_d1
+    name: "D1 리텐션"
+    category: user
+    source:
+      type: database
+      query: >
+        SELECT
+          ROUND(COUNT(DISTINCT s.uid) / NULLIF(COUNT(DISTINCT u.uid), 0) * 100, 1)
+        FROM users u
+        LEFT JOIN session_log s ON u.uid = s.uid
+          AND DATE(s.login_at) = DATE_ADD(DATE(u.created_at), INTERVAL 1 DAY)
+        WHERE DATE(u.created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+    format: percentage
+    target: 40
+    alert_below: 30
+
+  - id: retention_d7
+    name: "D7 리텐션"
+    category: user
+    source:
+      type: database
+      query: ""                    # 유사 쿼리 — 게임 DB에 맞게 작성
+    format: percentage
+    target: 20
+    alert_below: 15
+
+  - id: retention_d30
+    name: "D30 리텐션"
+    category: user
+    source:
+      type: database
+      query: ""
+    format: percentage
+    target: 5
+    alert_below: 3
+
+  # =====================
+  # 매출 지표 (Revenue)
+  # =====================
+  - id: daily_revenue
+    name: "일 매출"
+    category: revenue
+    source:
+      type: database
+      query: >
+        SELECT COALESCE(SUM(amount), 0)
+        FROM payments
+        WHERE status = 'completed'
+          AND DATE(created_at) = CURDATE()
+    format: currency_krw
+    comparison: day_over_day
+
+  - id: arpu
+    name: "ARPU (유저당 매출)"
+    category: revenue
+    source:
+      type: calculated             # 다른 지표 조합으로 계산
+      formula: "daily_revenue / dau"
+    format: currency_krw
+
+  - id: arppu
+    name: "ARPPU (과금 유저당 매출)"
+    category: revenue
+    source:
+      type: database
+      query: >
+        SELECT COALESCE(SUM(p.amount) / NULLIF(COUNT(DISTINCT p.uid), 0), 0)
+        FROM payments p
+        WHERE p.status = 'completed'
+          AND DATE(p.created_at) = CURDATE()
+    format: currency_krw
+
+  - id: paying_rate
+    name: "과금률"
+    category: revenue
+    source:
+      type: database
+      query: ""                    # 게임 DB에 맞게 작성
+    format: percentage
+
+  # =====================
+  # CS 지표
+  # =====================
+  - id: cs_total_tickets
+    name: "일일 CS 문의 수"
+    category: cs
+    source:
+      type: internal               # Phase 1 모듈에서 자동 수집
+      module: module_cs
+      metric: total_tickets_today
+    format: number
+
+  - id: cs_auto_resolve_rate
+    name: "CS 자동 처리율"
+    category: cs
+    source:
+      type: internal
+      module: module_cs
+      metric: auto_resolve_rate
+    format: percentage
+    target: 70
+    alert_below: 50
+
+  - id: cs_avg_response_time
+    name: "평균 응답 시간"
+    category: cs
+    source:
+      type: internal
+      module: module_cs
+      metric: avg_response_seconds
+    format: duration_seconds
+    target: 10
+
+  - id: cs_escalation_rate
+    name: "에스컬레이션 비율"
+    category: cs
+    source:
+      type: internal
+      module: module_cs
+      metric: escalation_rate
+    format: percentage
+
+  # =====================
+  # 게임 지표
+  # =====================
+  - id: avg_session_length
+    name: "평균 세션 시간 (분)"
+    category: game
+    source:
+      type: database
+      query: >
+        SELECT ROUND(AVG(TIMESTAMPDIFF(MINUTE, login_at, logout_at)), 1)
+        FROM session_log
+        WHERE DATE(login_at) = CURDATE()
+          AND logout_at IS NOT NULL
+    format: minutes
+
+  # =====================
+  # 수동 입력 지표 (DB 없는 경우)
+  # =====================
+  # - id: manual_dau
+  #   name: "DAU (수동 입력)"
+  #   category: user
+  #   source:
+  #     type: manual             # Admin Portal에서 직접 입력
+  #   format: number
+
+  # =====================
+  # Firebase/Amplitude 연동 (선택)
+  # =====================
+  # - id: firebase_dau
+  #   name: "DAU (Firebase)"
+  #   category: user
+  #   source:
+  #     type: api
+  #     provider: firebase
+  #     metric_name: "activeUsers"
+  #   format: number
