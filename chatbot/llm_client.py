@@ -1,6 +1,6 @@
 """Claude API 클라이언트"""
 import anthropic
-from config import ANTHROPIC_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, LLM_TEMPERATURE, SYSTEM_PROMPT
+from config import ANTHROPIC_API_KEY, LLM_MODEL, LLM_MAX_TOKENS, LLM_TEMPERATURE
 
 
 def create_client(api_key: str | None = None) -> anthropic.Anthropic:
@@ -11,28 +11,27 @@ def create_client(api_key: str | None = None) -> anthropic.Anthropic:
     return anthropic.Anthropic(api_key=key)
 
 
-def ask_qa_bot(
+def call_llm(
     client: anthropic.Anthropic,
-    user_question: str,
-    knowledge_base: str,
+    system_prompt: str,
+    user_message: str,
     chat_history: list[dict] | None = None,
     model: str | None = None,
+    max_tokens: int | None = None,
+    temperature: float | None = None,
 ) -> str:
-    """QA 봇에게 질문합니다."""
-    system = SYSTEM_PROMPT.format(knowledge_base=knowledge_base)
-
+    """Claude API를 호출합니다."""
     messages = []
     if chat_history:
-        # 최근 20개 메시지만 유지
         messages.extend(chat_history[-20:])
 
-    messages.append({"role": "user", "content": user_question})
+    messages.append({"role": "user", "content": user_message})
 
     response = client.messages.create(
         model=model or LLM_MODEL,
-        max_tokens=LLM_MAX_TOKENS,
-        temperature=LLM_TEMPERATURE,
-        system=system,
+        max_tokens=max_tokens or LLM_MAX_TOKENS,
+        temperature=temperature if temperature is not None else LLM_TEMPERATURE,
+        system=system_prompt,
         messages=messages,
     )
 
